@@ -3,7 +3,7 @@ _Reimagining Geospatial Metadata — with Intelligence_
 
 ## Overview
 
-**MetaGuessr** is a collaborative reimplementation of the original [likeon/geometa](https://github.com/likeon/geometa) project, developed by a team of computing science students aiming to enhance metadata extraction from geospatial datasets.  
+**MetaGuessr** is a collaborative reimplementation of the original likeon/geometa project, developed by a team of computing science students aiming to enhance metadata extraction from geospatial datasets.  
 
 We worked alongside a talented team to rebuild the existing GeoMeta tool from the ground up—but with a twist: **we integrated machine learning–based tag recommendations** using pre-trained language models and domain-specific heuristics. This allows users to automatically receive relevant metadata suggestions for files lacking proper annotations.
 
