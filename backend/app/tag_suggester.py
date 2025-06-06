@@ -1,4 +1,3 @@
-# backend/app/tag_suggester.py
 
 import torch
 import numpy as np
@@ -18,11 +17,9 @@ class TagSuggester:
     """
 
     def __init__(self, model_name: str = "bert-base-uncased"):
-        # 1) Load tokenizer + model
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModel.from_pretrained(model_name)
 
-        # 2) Define a shortlist of candidate tags (you can expand this list)
         self.candidate_tags = [
             "roads",
             "buildings",
@@ -36,7 +33,6 @@ class TagSuggester:
             "points_of_interest",
         ]
 
-        # 3) Pre-compute embeddings for each candidate tag
         self.tag_embeddings = self._compute_tag_embeddings(self.candidate_tags)
 
     def _compute_tag_embeddings(self, tags: list[str]) -> np.ndarray:
@@ -50,12 +46,9 @@ class TagSuggester:
             inputs = self.tokenizer(tag, return_tensors="pt", truncation=True)
             with torch.no_grad():
                 outputs = self.model(**inputs)
-            # outputs.last_hidden_state: (batch_size=1, seq_len, hidden_size)
-            # We take the [CLS] embedding: index 0 in seq_len
-            cls_emb = outputs.last_hidden_state[:, 0, :].cpu().numpy()  # shape (1, hidden_size)
+            cls_emb = outputs.last_hidden_state[:, 0, :].cpu().numpy() 
             embeddings.append(cls_emb)
 
-        # Stack into shape (num_tags, hidden_size)
         return np.vstack(embeddings)
 
     def _geojson_to_text(self, geojson: dict) -> str:
@@ -68,12 +61,9 @@ class TagSuggester:
         if not features:
             return ""
 
-        # Grab the very first feature's properties (if it exists)
         props = features[0].get("properties", {})
-        # Join "key value" pairs into one string
         tokens: list[str] = []
         for k, v in props.items():
-            # Cast the value to string in case it's numeric, boolean, etc.
             tokens.append(f"{k} {v}")
         return " ".join(tokens)
 
@@ -84,30 +74,23 @@ class TagSuggester:
         3) Compute cosine similarity (1 × num_tags) against pre-computed tag embeddings
         4) Return the top_k most similar candidate tags
         """
-        # 1) Build a text summary from the GeoJSON
         text_summary = self._geojson_to_text(geojson)
         if text_summary.strip() == "":
             return []
 
-        # 2) Tokenize + embed
         inputs = self.tokenizer(
             text_summary, return_tensors="pt", truncation=True, max_length=512
         )
         with torch.no_grad():
             outputs = self.model(**inputs)
-        # [CLS] embedding of the entire summary: shape (1, hidden_size)
         summary_emb = outputs.last_hidden_state[:, 0, :].cpu().numpy()
 
-        # 3) Cosine similarities → shape (1, num_tags)
         sims = cosine_similarity(summary_emb, self.tag_embeddings)[0]
-        # 4) Get indices of top_k highest similarities
         top_indices = sims.argsort()[-top_k:][::-1]
         return [self.candidate_tags[i] for i in top_indices]
 
 
-# For quick local testing:
 if __name__ == "__main__":
-    # Example: load a small GeoJSON snippet from disk (replace path as needed)
     example_path = "sample.geojson"
     try:
         with open(example_path, "r", encoding="utf-8") as fp:
